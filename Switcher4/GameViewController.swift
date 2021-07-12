@@ -33,6 +33,7 @@ class GameViewController: UIViewController {
         setupPlayer()
         loadAnimations()
         setupGestures()
+        spawnMonsters()
     }
     
     func setupScene() {
@@ -41,9 +42,11 @@ class GameViewController: UIViewController {
         
         scene = SCNScene()
         sceneView.scene = scene
+        scene.physicsWorld.contactDelegate = self
         
         sceneView.backgroundColor = UIColor(red: 255/255, green: 210/255, blue: 138/255, alpha: 1)
         sceneView.showsStatistics = true
+        //sceneView.debugOptions = .showPhysicsShapes
         //sceneView.allowsCameraControl = true
     }
     
@@ -93,28 +96,34 @@ class GameViewController: UIViewController {
     }
     
     func setupPlayer() {
-        let runningScene = SCNScene(named: "art.scnassets/maria/run.dae")!
+        let runningScene = SCNScene(named: "art.scnassets/maria/sprint.scn")!
         for child in runningScene.rootNode.childNodes {
             playerNode.addChildNode(child)
         }
+        
         playerNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        //playerNode.physicsBody = playerNode.childNode(withName: "Maria_J_J_Ong", recursively: true)?.physicsBody
         playerNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: 180), z: 0)
-        let runningAction = SCNAction.repeatForever(SCNAction.moveBy(x: 0, y: 0, z: -3.5, duration: 1.0))
+        let runningAction = SCNAction.repeatForever(SCNAction.moveBy(x: 0, y: 0, z: -5.5, duration: 1.0))
         playerNode.runAction(runningAction)
+        
         sceneView.scene?.rootNode.addChildNode(playerNode)
     }
     
     func loadAnimations() {
-        loadAnimation(from: "attack", fadeInDuration: 0.1, fadeOutDuration: 1.15)
-        loadAnimation(from: "slide", fadeInDuration: 0.1, fadeOutDuration: 0.2)
-        loadAnimation(from: "jump", fadeInDuration: 0.02, fadeOutDuration: 0.02)
-        loadAnimation(from: "left", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "right", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "roll", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "maria", named: "attack", fadeInDuration: 0.1, fadeOutDuration: 1.15)
+        loadAnimation(from: "maria", named: "slide", fadeInDuration: 0.1, fadeOutDuration: 0.2)
+        loadAnimation(from: "maria", named: "jump", fadeInDuration: 0.02, fadeOutDuration: 0.08)
+        loadAnimation(from: "maria", named: "moveLeft", fadeInDuration: 0.1, fadeOutDuration: 0.3)
+        loadAnimation(from: "maria", named: "moveRight", fadeInDuration: 0.1, fadeOutDuration: 0.3)
+        loadAnimation(from: "maria", named: "roll", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "monster", named: "death1", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "monster", named: "death2", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "monster", named: "death3", fadeInDuration: 0.1, fadeOutDuration: 0.1)
     }
     
-    func loadAnimation(from name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat) {
-        let sceneURL = Bundle.main.url(forResource: "art.scnassets/maria/" + name, withExtension: "dae")
+    func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat) {
+        let sceneURL = Bundle.main.url(forResource: "art.scnassets/" + folder + "/" + name, withExtension: "dae")
         let sceneSource = SCNSceneSource(url: sceneURL!, options: nil)
         if let animationObject = sceneSource?.entryWithIdentifier(name + "-1", withClass: CAAnimation.self) {
             animationObject.repeatCount = 1
@@ -149,26 +158,53 @@ class GameViewController: UIViewController {
     @objc func handleSwipeGesture(_ sender: UISwipeGestureRecognizer) {
         switch sender.direction {
             case .up:
-                runAnimation(named: "jump")
+                runAnimation(named: "jump", on: playerNode)
             case .down:
-                runAnimation(named: "slide")
+                runAnimation(named: "slide", on: playerNode)
             case .right:
-                runAnimation(named: "right")
+                runAnimation(named: "moveRight", on: playerNode)
+                let moveRightAction = SCNAction.moveBy(x: 0.8, y: 0, z: 0, duration: 0.35)
+                moveRightAction.timingMode = .easeOut
+                playerNode.runAction(moveRightAction)
             case .left:
-                runAnimation(named: "left")
+                runAnimation(named: "moveLeft", on: playerNode)
+                let moveLeftAction = SCNAction.moveBy(x: -0.8, y: 0, z: 0, duration: 0.35)
+                moveLeftAction.timingMode = .easeOut
+                playerNode.runAction(moveLeftAction)
             default:
                 break
         }
     }
     
     @objc func handleTapGesture(_ sender: UISwipeGestureRecognizer) {
-        runAnimation(named: "attack")
+        runAnimation(named: "attack", on: playerNode)
     }
     
-    func runAnimation(named name: String) {
-        if !playerNode.animationKeys.contains(name) {
-            playerNode.addAnimation(animations[name]!, forKey: name)
+    func runAnimation(named name: String, on node: SCNNode) {
+        var animationNames = ["jump", "slide", "attack"]
+        animationNames.append(name)
+        if !node.animationKeys.contains(where: animationNames.contains) {
+            node.addAnimation(animations[name]!, forKey: name)
         }
+    }
+    
+    func spawnMonsters() {
+        for i in 1...30 {
+            spawnMonster(at: SCNVector3(x: 0.8 * Float(Int.random(in: -1...1)), y: 0, z: Float(-20 * i)))
+        }
+    }
+    
+    func spawnMonster(at position: SCNVector3) {
+        let monsterNode = SCNNode()
+        let monsterScene = SCNScene(named: "art.scnassets/monster/monster.scn")!
+        for child in monsterScene.rootNode.childNodes {
+            monsterNode.addChildNode(child)
+        }
+        
+        monsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        monsterNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(monsterNode.clone())
     }
 
 }
@@ -184,6 +220,54 @@ extension GameViewController: SCNSceneRendererDelegate {
     func updateCameraPosition() {
         let differenceZ = playerNode.position.z + 3.2 - cameraNode.position.z
         cameraNode.position.z += differenceZ
+    }
+    
+}
+
+//MARK: - SCNPhysicsContactDelegate
+
+extension GameViewController: SCNPhysicsContactDelegate {
+    
+    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
+        guard let categoryA = contact.nodeA.physicsBody?.categoryBitMask, let categoryB = contact.nodeB.physicsBody?.categoryBitMask else { return }
+        
+        let mask = categoryA | categoryB
+        
+        switch mask {
+        case PhysicsCategories.player | PhysicsCategories.monster:
+            endGame()
+        case PhysicsCategories.sword | PhysicsCategories.monster:
+            let monster = contact.nodeA.name == "Monster" ? contact.nodeA : contact.nodeB
+            if playerNode.animationKeys.contains("attack") {
+                monster.physicsBody?.categoryBitMask = 0
+                if let monster = monster.parent {
+                    runAnimation(named: "death" + String(Int.random(in: 1...3)), on: monster)
+                }
+            }
+        default:
+            break
+        }
+    }
+    
+    func endGame() {
+        playerNode.removeAllActions()
+        
+        let animationName = "death" + String(Int.random(in: 1...3))
+        playerNode.addAnimation(animations[animationName]!, forKey: animationName)
+        
+        let fadeOutAction = SCNAction.fadeOut(duration: 1.5)
+        fadeOutAction.timingMode = .easeIn
+        playerNode.runAction(fadeOutAction) {
+            self.playerNode.removeFromParentNode()
+        }
+        
+        DispatchQueue.main.async {
+            if let gestureRecognizers = self.sceneView.gestureRecognizers {
+                for recognizer in gestureRecognizers {
+                    self.sceneView.removeGestureRecognizer(recognizer)
+                }
+            }
+        }
     }
     
 }

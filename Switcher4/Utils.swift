@@ -10,3 +10,9 @@ import Foundation
 func convertToRadians(degrees: Float) -> Float {
     return Float.pi/180 * degrees
 }
+
+struct PhysicsCategories {
+    static let player = 1
+    static let monster = 2
+    static let sword = 4
+}
