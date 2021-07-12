@@ -16,4 +16,5 @@ struct PhysicsCategories {
     static let monster = 2
     static let sword = 4
     static let log = 8
+    static let bridge = 16
 }

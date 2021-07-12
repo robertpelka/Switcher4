@@ -33,7 +33,7 @@ class GameViewController: UIViewController {
         setupPlayer()
         loadAnimations()
         setupGestures()
-        spawnMonsters()
+        spawnObstacles()
     }
     
     func setupScene() {
@@ -69,7 +69,7 @@ class GameViewController: UIViewController {
         directionalLightNode.light?.type = .directional
         directionalLightNode.light?.temperature = 3500
         directionalLightNode.light?.castsShadow = true
-        directionalLightNode.light?.maximumShadowDistance = 20.0
+        directionalLightNode.light?.maximumShadowDistance = 32.0
         directionalLightNode.light?.shadowMapSize = CGSize(width: 2048, height: 2048)
         directionalLightNode.eulerAngles = SCNVector3(x: convertToRadians(degrees: -45), y: convertToRadians(degrees: -45), z: 0)
         lightNode.addChildNode(directionalLightNode)
@@ -193,12 +193,16 @@ class GameViewController: UIViewController {
         }
     }
     
-    func spawnMonsters() {
+    func spawnObstacles() {
         for i in 1...30 {
             let xPosition = 0.8 * Float(Int.random(in: -1...1))
             let zPosition = Float(-20 * i)
-            if Int.random(in: 1...2) == 1 {
+            let randomNumber = Int.random(in: 1...3)
+            if randomNumber == 1 {
                 spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+            }
+            else if randomNumber == 2 {
+                spawnBridge(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
             }
             else {
                 spawnLog(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
@@ -232,6 +236,19 @@ class GameViewController: UIViewController {
         
         sceneView.scene?.rootNode.addChildNode(logNode)
     }
+    
+    func spawnBridge(at position: SCNVector3) {
+        let bridgeNode = SCNNode()
+        let bridgeScene = SCNScene(named: "art.scnassets/bridge/bridge.scn")!
+        for child in bridgeScene.rootNode.childNodes {
+            bridgeNode.addChildNode(child)
+        }
+        
+        bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.1)
+        bridgeNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(bridgeNode)
+    }
 
 }
 
@@ -261,7 +278,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
         
         switch mask {
         case PhysicsCategories.player | PhysicsCategories.monster:
-            endGame(fallForward: false)
+            endGame(withAnimation: "death1")
         case PhysicsCategories.sword | PhysicsCategories.monster:
             let monster = contact.nodeA.name == "Monster" ? contact.nodeA : contact.nodeB
             if playerNode.animationKeys.contains("attack") {
@@ -272,23 +289,24 @@ extension GameViewController: SCNPhysicsContactDelegate {
             }
         case PhysicsCategories.player | PhysicsCategories.log:
             if !playerNode.animationKeys.contains("jump") {
-                endGame(fallForward: true)
+                endGame(withAnimation: "trip")
+            }
+        case PhysicsCategories.player | PhysicsCategories.bridge:
+            let bridge = contact.nodeA.name == "Bridge" ? contact.nodeA : contact.nodeB
+            guard let bridgeParent = bridge.parent else { return }
+            print(playerNode.position.x - bridgeParent.position.x)
+            if !playerNode.animationKeys.contains("slide") || abs(playerNode.position.x - bridgeParent.position.x) > 0.1 {
+                endGame(withAnimation: "death2")
             }
         default:
             break
         }
     }
     
-    func endGame(fallForward: Bool) {
+    func endGame(withAnimation name: String) {
         playerNode.removeAllActions()
-        
-        if fallForward {
-            playerNode.addAnimation(animations["trip"]!, forKey: "trip")
-        }
-        else {
-            let animationName = "death" + String(Int.random(in: 1...3))
-            playerNode.addAnimation(animations[animationName]!, forKey: animationName)
-        }
+
+        playerNode.addAnimation(animations[name]!, forKey: name)
         
         let wait = SCNAction()
         wait.duration = 1.6
