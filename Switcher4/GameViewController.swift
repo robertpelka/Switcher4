@@ -102,7 +102,6 @@ class GameViewController: UIViewController {
         }
         
         playerNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
-        //playerNode.physicsBody = playerNode.childNode(withName: "Maria_J_J_Ong", recursively: true)?.physicsBody
         playerNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: 180), z: 0)
         let runningAction = SCNAction.repeatForever(SCNAction.moveBy(x: 0, y: 0, z: -5.5, duration: 1.0))
         playerNode.runAction(runningAction)
@@ -111,18 +110,19 @@ class GameViewController: UIViewController {
     }
     
     func loadAnimations() {
-        loadAnimation(from: "maria", named: "attack", fadeInDuration: 0.1, fadeOutDuration: 1.15)
+        loadAnimation(from: "maria", named: "attack", fadeInDuration: 0.1, fadeOutDuration: 1.15, speed: 1.4)
         loadAnimation(from: "maria", named: "slide", fadeInDuration: 0.1, fadeOutDuration: 0.2)
         loadAnimation(from: "maria", named: "jump", fadeInDuration: 0.02, fadeOutDuration: 0.08)
         loadAnimation(from: "maria", named: "moveLeft", fadeInDuration: 0.1, fadeOutDuration: 0.3)
         loadAnimation(from: "maria", named: "moveRight", fadeInDuration: 0.1, fadeOutDuration: 0.3)
         loadAnimation(from: "maria", named: "roll", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "maria", named: "trip", fadeInDuration: 0.1, fadeOutDuration: 0.1)
         loadAnimation(from: "monster", named: "death1", fadeInDuration: 0.1, fadeOutDuration: 0.1)
         loadAnimation(from: "monster", named: "death2", fadeInDuration: 0.1, fadeOutDuration: 0.1)
         loadAnimation(from: "monster", named: "death3", fadeInDuration: 0.1, fadeOutDuration: 0.1)
     }
     
-    func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat) {
+    func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat, speed: Float = 1.0) {
         let sceneURL = Bundle.main.url(forResource: "art.scnassets/" + folder + "/" + name, withExtension: "dae")
         let sceneSource = SCNSceneSource(url: sceneURL!, options: nil)
         if let animationObject = sceneSource?.entryWithIdentifier(name + "-1", withClass: CAAnimation.self) {
@@ -130,6 +130,7 @@ class GameViewController: UIViewController {
             animationObject.fadeInDuration = fadeInDuration
             animationObject.fadeOutDuration = fadeOutDuration
             animationObject.isRemovedOnCompletion = true
+            animationObject.speed = speed
             animations[name] = animationObject
         }
     }
@@ -162,15 +163,19 @@ class GameViewController: UIViewController {
             case .down:
                 runAnimation(named: "slide", on: playerNode)
             case .right:
-                runAnimation(named: "moveRight", on: playerNode)
-                let moveRightAction = SCNAction.moveBy(x: 0.8, y: 0, z: 0, duration: 0.35)
-                moveRightAction.timingMode = .easeOut
-                playerNode.runAction(moveRightAction)
+                if playerNode.position.x <= 0.01 {
+                    runAnimation(named: "moveRight", on: playerNode)
+                    let moveRightAction = SCNAction.moveBy(x: 0.8, y: 0, z: 0, duration: 0.35)
+                    moveRightAction.timingMode = .easeOut
+                    playerNode.runAction(moveRightAction)
+                }
             case .left:
-                runAnimation(named: "moveLeft", on: playerNode)
-                let moveLeftAction = SCNAction.moveBy(x: -0.8, y: 0, z: 0, duration: 0.35)
-                moveLeftAction.timingMode = .easeOut
-                playerNode.runAction(moveLeftAction)
+                if playerNode.position.x >= -0.01 {
+                    runAnimation(named: "moveLeft", on: playerNode)
+                    let moveLeftAction = SCNAction.moveBy(x: -0.8, y: 0, z: 0, duration: 0.35)
+                    moveLeftAction.timingMode = .easeOut
+                    playerNode.runAction(moveLeftAction)
+                }
             default:
                 break
         }
@@ -190,7 +195,14 @@ class GameViewController: UIViewController {
     
     func spawnMonsters() {
         for i in 1...30 {
-            spawnMonster(at: SCNVector3(x: 0.8 * Float(Int.random(in: -1...1)), y: 0, z: Float(-20 * i)))
+            let xPosition = 0.8 * Float(Int.random(in: -1...1))
+            let zPosition = Float(-20 * i)
+            if Int.random(in: 1...2) == 1 {
+                spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+            }
+            else {
+                spawnLog(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+            }
         }
     }
     
@@ -204,7 +216,21 @@ class GameViewController: UIViewController {
         monsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         monsterNode.position = position
         
-        sceneView.scene?.rootNode.addChildNode(monsterNode.clone())
+        sceneView.scene?.rootNode.addChildNode(monsterNode)
+    }
+    
+    func spawnLog(at position: SCNVector3) {
+        let logNode = SCNNode()
+        let logScene = SCNScene(named: "art.scnassets/log/log.scn")!
+        for child in logScene.rootNode.childNodes {
+            logNode.addChildNode(child)
+        }
+        
+        logNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: Float.random(in: -110 ... -70)), z: 0)
+        logNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        logNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(logNode)
     }
 
 }
@@ -235,7 +261,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
         
         switch mask {
         case PhysicsCategories.player | PhysicsCategories.monster:
-            endGame()
+            endGame(fallForward: false)
         case PhysicsCategories.sword | PhysicsCategories.monster:
             let monster = contact.nodeA.name == "Monster" ? contact.nodeA : contact.nodeB
             if playerNode.animationKeys.contains("attack") {
@@ -244,20 +270,29 @@ extension GameViewController: SCNPhysicsContactDelegate {
                     runAnimation(named: "death" + String(Int.random(in: 1...3)), on: monster)
                 }
             }
+        case PhysicsCategories.player | PhysicsCategories.log:
+            if !playerNode.animationKeys.contains("jump") {
+                endGame(fallForward: true)
+            }
         default:
             break
         }
     }
     
-    func endGame() {
+    func endGame(fallForward: Bool) {
         playerNode.removeAllActions()
         
-        let animationName = "death" + String(Int.random(in: 1...3))
-        playerNode.addAnimation(animations[animationName]!, forKey: animationName)
+        if fallForward {
+            playerNode.addAnimation(animations["trip"]!, forKey: "trip")
+        }
+        else {
+            let animationName = "death" + String(Int.random(in: 1...3))
+            playerNode.addAnimation(animations[animationName]!, forKey: animationName)
+        }
         
-        let fadeOutAction = SCNAction.fadeOut(duration: 1.5)
-        fadeOutAction.timingMode = .easeIn
-        playerNode.runAction(fadeOutAction) {
+        let wait = SCNAction()
+        wait.duration = 1.6
+        playerNode.runAction(wait) {
             self.playerNode.removeFromParentNode()
         }
         
