@@ -19,6 +19,7 @@ class GameViewController: UIViewController {
     let playerNode = SCNNode()
     
     var animations = [String: CAAnimation]()
+    var score = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -124,7 +125,8 @@ class GameViewController: UIViewController {
     
     func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat, speed: Float = 1.0) {
         let sceneURL = Bundle.main.url(forResource: "art.scnassets/" + folder + "/" + name, withExtension: "dae")
-        let sceneSource = SCNSceneSource(url: sceneURL!, options: nil)
+        guard let URL = sceneURL else { return }
+        let sceneSource = SCNSceneSource(url: URL, options: nil)
         if let animationObject = sceneSource?.entryWithIdentifier(name + "-1", withClass: CAAnimation.self) {
             animationObject.repeatCount = 1
             animationObject.fadeInDuration = fadeInDuration
@@ -189,20 +191,25 @@ class GameViewController: UIViewController {
         var animationNames = ["jump", "slide", "attack"]
         animationNames.append(name)
         if !node.animationKeys.contains(where: animationNames.contains) {
-            node.addAnimation(animations[name]!, forKey: name)
+            if let animation = animations[name] {
+                node.addAnimation(animation, forKey: name)
+            }
         }
     }
     
     func spawnObstacles() {
-        for i in 1...30 {
+        for i in 2...40 {
             let xPosition = 0.8 * Float(Int.random(in: -1...1))
-            let zPosition = Float(-20 * i)
-            let randomNumber = Int.random(in: 1...3)
+            let zPosition = Float(-11 * i)
+            let randomNumber = Int.random(in: 1...4)
             if randomNumber == 1 {
                 spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
             }
             else if randomNumber == 2 {
                 spawnBridge(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+            }
+            else if randomNumber == 3 {
+                spawnCoin(at: SCNVector3(x: xPosition, y: 1.0, z: zPosition))
             }
             else {
                 spawnLog(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
@@ -244,10 +251,25 @@ class GameViewController: UIViewController {
             bridgeNode.addChildNode(child)
         }
         
-        bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.1)
+        bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.09)
         bridgeNode.position = position
         
         sceneView.scene?.rootNode.addChildNode(bridgeNode)
+    }
+    
+    func spawnCoin(at position: SCNVector3) {
+        let coinNode = SCNNode()
+        let coinScene = SCNScene(named: "art.scnassets/coin/coin.scn")!
+        for child in coinScene.rootNode.childNodes {
+            coinNode.addChildNode(child)
+        }
+        
+        coinNode.scale = SCNVector3(x: 0.0015, y: 0.0015, z: 0.0015)
+        coinNode.eulerAngles = SCNVector3(x: convertToRadians(degrees: -90), y: 0, z: 0)
+        coinNode.position = position
+        coinNode.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: 180), z: 0, duration: 1.0)))
+        
+        sceneView.scene?.rootNode.addChildNode(coinNode)
     }
 
 }
@@ -294,10 +316,13 @@ extension GameViewController: SCNPhysicsContactDelegate {
         case PhysicsCategories.player | PhysicsCategories.bridge:
             let bridge = contact.nodeA.name == "Bridge" ? contact.nodeA : contact.nodeB
             guard let bridgeParent = bridge.parent else { return }
-            print(playerNode.position.x - bridgeParent.position.x)
             if !playerNode.animationKeys.contains("slide") || abs(playerNode.position.x - bridgeParent.position.x) > 0.1 {
                 endGame(withAnimation: "death2")
             }
+        case PhysicsCategories.player | PhysicsCategories.coin:
+            let coin = contact.nodeA.name == "Coin" ? contact.nodeA : contact.nodeB
+            coin.removeFromParentNode()
+            score += 1
         default:
             break
         }
@@ -306,7 +331,9 @@ extension GameViewController: SCNPhysicsContactDelegate {
     func endGame(withAnimation name: String) {
         playerNode.removeAllActions()
 
-        playerNode.addAnimation(animations[name]!, forKey: name)
+        if let animation = animations[name] {
+            playerNode.addAnimation(animation, forKey: name)
+        }
         
         let wait = SCNAction()
         wait.duration = 1.6
