@@ -18,7 +18,7 @@ class GameViewController: UIViewController {
     let lightNode = SCNNode()
     let playerNode = SCNNode()
     
-    var animations = [String: CAAnimation]()
+    var obstacleCounter = 0
     var score = 0
     
     override func viewDidLoad() {
@@ -27,14 +27,15 @@ class GameViewController: UIViewController {
     }
     
     func initializeGame() {
+        Models.loadModels()
+        Models.loadAnimations()
         setupScene()
         setupCamera()
         setupLight()
         setupFloor()
         setupPlayer()
-        loadAnimations()
         setupGestures()
-        spawnObstacles()
+        spawnStartingObstacles()
     }
     
     func setupScene() {
@@ -89,7 +90,7 @@ class GameViewController: UIViewController {
         floor.firstMaterial?.ambientOcclusion.contents = UIImage(named: "art.scnassets/grass/grassAmbientOcclusion.jpg")
         floor.firstMaterial?.displacement.contents = UIImage(named: "art.scnassets/grass/grassDisplacement.jpg")
         floor.firstMaterial?.normal.contents = UIImage(named: "art.scnassets/grass/grassNormal.jpg")
-        floor.firstMaterial?.roughness.contents = UIImage(named: "art.scnassets/grassRoughness.jpg")
+        floor.firstMaterial?.roughness.contents = UIImage(named: "art.scnassets/grass/grassRoughness.jpg")
         
         floor.reflectivity = 0
         let floorNode = SCNNode(geometry: floor)
@@ -97,10 +98,7 @@ class GameViewController: UIViewController {
     }
     
     func setupPlayer() {
-        let runningScene = SCNScene(named: "art.scnassets/maria/sprint.scn")!
-        for child in runningScene.rootNode.childNodes {
-            playerNode.addChildNode(child)
-        }
+        playerNode.addChildNode(Models.player.clone())
         
         playerNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         playerNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: 180), z: 0)
@@ -110,32 +108,87 @@ class GameViewController: UIViewController {
         sceneView.scene?.rootNode.addChildNode(playerNode)
     }
     
-    func loadAnimations() {
-        loadAnimation(from: "maria", named: "attack", fadeInDuration: 0.1, fadeOutDuration: 1.15, speed: 1.4)
-        loadAnimation(from: "maria", named: "slide", fadeInDuration: 0.1, fadeOutDuration: 0.2)
-        loadAnimation(from: "maria", named: "jump", fadeInDuration: 0.02, fadeOutDuration: 0.08)
-        loadAnimation(from: "maria", named: "moveLeft", fadeInDuration: 0.1, fadeOutDuration: 0.3)
-        loadAnimation(from: "maria", named: "moveRight", fadeInDuration: 0.1, fadeOutDuration: 0.3)
-        loadAnimation(from: "maria", named: "roll", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "maria", named: "trip", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "monster", named: "death1", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "monster", named: "death2", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-        loadAnimation(from: "monster", named: "death3", fadeInDuration: 0.1, fadeOutDuration: 0.1)
-    }
-    
-    func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat, speed: Float = 1.0) {
-        let sceneURL = Bundle.main.url(forResource: "art.scnassets/" + folder + "/" + name, withExtension: "dae")
-        guard let URL = sceneURL else { return }
-        let sceneSource = SCNSceneSource(url: URL, options: nil)
-        if let animationObject = sceneSource?.entryWithIdentifier(name + "-1", withClass: CAAnimation.self) {
-            animationObject.repeatCount = 1
-            animationObject.fadeInDuration = fadeInDuration
-            animationObject.fadeOutDuration = fadeOutDuration
-            animationObject.isRemovedOnCompletion = true
-            animationObject.speed = speed
-            animations[name] = animationObject
+    func spawnStartingObstacles() {
+        for _ in 1...8 {
+            spawnObstacle()
         }
     }
+    
+    func spawnObstacle() {
+        let xPosition = 0.8 * Float(Int.random(in: -1...1))
+        let zPosition = Float(-12 * (obstacleCounter + 2))
+        let oneInThree = Int.random(in: 1...3)
+        if oneInThree == 1 {
+            spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+        }
+        else if oneInThree == 2 {
+            spawnBridge(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+        }
+        else {
+            spawnLog(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
+        }
+        spawnCoins(at: SCNVector3(x: Float(Int.random(in: -1...1)), y: 1.0, z: zPosition - 6))
+        obstacleCounter += 1
+    }
+    
+    func spawnMonster(at position: SCNVector3) {
+        let monsterNode = Models.monster.clone()
+        
+        monsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        monsterNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(monsterNode)
+    }
+    
+    func spawnLog(at position: SCNVector3) {
+        let logNode = Models.log.clone()
+        
+        logNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: Float.random(in: -110 ... -70)), z: 0)
+        logNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        logNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(logNode)
+    }
+    
+    func spawnBridge(at position: SCNVector3) {
+        let bridgeNode = Models.bridge.clone()
+        
+        bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.09)
+        bridgeNode.position = position
+        
+        sceneView.scene?.rootNode.addChildNode(bridgeNode)
+    }
+    
+    func spawnCoins(at position: SCNVector3) {
+        for i in -1...1 {
+            let coinNode = Models.coin.clone()
+            
+            coinNode.scale = SCNVector3(x: 0.0015, y: 0.0015, z: 0.0015)
+            coinNode.eulerAngles = SCNVector3(x: convertToRadians(degrees: -90), y: 0, z: 0)
+            coinNode.position = SCNVector3(x: position.x, y: position.y, z: position.z + Float(2 * i))
+            coinNode.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: 180), z: 0, duration: 1.0)))
+            
+            sceneView.scene?.rootNode.addChildNode(coinNode)
+        }
+    }
+    
+    func removePassedObstacles() {
+        guard let scene = sceneView.scene else { return }
+        for childNode in scene.rootNode.childNodes {
+            if !sceneView.isNode(childNode, insideFrustumOf: cameraNode) && childNode.worldPosition.z > playerNode.worldPosition.z {
+                if !(childNode.childNodes.first?.name == "Coin") {
+                    spawnObstacle()
+                }
+                childNode.removeFromParentNode()
+            }
+        }
+    }
+
+}
+
+//MARK: - Gesture Recognizers
+
+extension GameViewController {
     
     func setupGestures() {
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture))
@@ -191,87 +244,12 @@ class GameViewController: UIViewController {
         var animationNames = ["jump", "slide", "attack"]
         animationNames.append(name)
         if !node.animationKeys.contains(where: animationNames.contains) {
-            if let animation = animations[name] {
+            if let animation = Models.animations[name] {
                 node.addAnimation(animation, forKey: name)
             }
         }
     }
     
-    func spawnObstacles() {
-        for i in 2...40 {
-            let xPosition = 0.8 * Float(Int.random(in: -1...1))
-            let zPosition = Float(-11 * i)
-            let randomNumber = Int.random(in: 1...4)
-            if randomNumber == 1 {
-                spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
-            }
-            else if randomNumber == 2 {
-                spawnBridge(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
-            }
-            else if randomNumber == 3 {
-                spawnCoin(at: SCNVector3(x: xPosition, y: 1.0, z: zPosition))
-            }
-            else {
-                spawnLog(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
-            }
-        }
-    }
-    
-    func spawnMonster(at position: SCNVector3) {
-        let monsterNode = SCNNode()
-        let monsterScene = SCNScene(named: "art.scnassets/monster/monster.scn")!
-        for child in monsterScene.rootNode.childNodes {
-            monsterNode.addChildNode(child)
-        }
-        
-        monsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
-        monsterNode.position = position
-        
-        sceneView.scene?.rootNode.addChildNode(monsterNode)
-    }
-    
-    func spawnLog(at position: SCNVector3) {
-        let logNode = SCNNode()
-        let logScene = SCNScene(named: "art.scnassets/log/log.scn")!
-        for child in logScene.rootNode.childNodes {
-            logNode.addChildNode(child)
-        }
-        
-        logNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: Float.random(in: -110 ... -70)), z: 0)
-        logNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
-        logNode.position = position
-        
-        sceneView.scene?.rootNode.addChildNode(logNode)
-    }
-    
-    func spawnBridge(at position: SCNVector3) {
-        let bridgeNode = SCNNode()
-        let bridgeScene = SCNScene(named: "art.scnassets/bridge/bridge.scn")!
-        for child in bridgeScene.rootNode.childNodes {
-            bridgeNode.addChildNode(child)
-        }
-        
-        bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.09)
-        bridgeNode.position = position
-        
-        sceneView.scene?.rootNode.addChildNode(bridgeNode)
-    }
-    
-    func spawnCoin(at position: SCNVector3) {
-        let coinNode = SCNNode()
-        let coinScene = SCNScene(named: "art.scnassets/coin/coin.scn")!
-        for child in coinScene.rootNode.childNodes {
-            coinNode.addChildNode(child)
-        }
-        
-        coinNode.scale = SCNVector3(x: 0.0015, y: 0.0015, z: 0.0015)
-        coinNode.eulerAngles = SCNVector3(x: convertToRadians(degrees: -90), y: 0, z: 0)
-        coinNode.position = position
-        coinNode.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: 180), z: 0, duration: 1.0)))
-        
-        sceneView.scene?.rootNode.addChildNode(coinNode)
-    }
-
 }
 
 //MARK: - SCNSceneRendererDelegate
@@ -280,6 +258,7 @@ extension GameViewController: SCNSceneRendererDelegate {
     
     func renderer(_ renderer: SCNSceneRenderer, didApplyAnimationsAtTime time: TimeInterval) {
         updateCameraPosition()
+        removePassedObstacles()
     }
     
     func updateCameraPosition() {
@@ -331,7 +310,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
     func endGame(withAnimation name: String) {
         playerNode.removeAllActions()
 
-        if let animation = animations[name] {
+        if let animation = Models.animations[name] {
             playerNode.addAnimation(animation, forKey: name)
         }
         

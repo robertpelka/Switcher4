@@ -59,10 +59,10 @@
 				48B4B3B9269AFF0E00290A2C /* AppDelegate.swift */,
 				48B4B3BB269AFF0E00290A2C /* art.scnassets */,
 				48B4B3BD269AFF0E00290A2C /* GameViewController.swift */,
+				48B4B3CD269B02CA00290A2C /* Utils.swift */,
 				48B4B3BF269AFF0E00290A2C /* Main.storyboard */,
 				48B4B3C2269AFF1200290A2C /* Assets.xcassets */,
 				48B4B3C4269AFF1200290A2C /* Info.plist */,
-				48B4B3CD269B02CA00290A2C /* Utils.swift */,
 			);
 			path = Switcher4;
 			sourceTree = "<group>";
