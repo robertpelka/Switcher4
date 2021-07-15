@@ -109,7 +109,7 @@ class GameViewController: UIViewController {
     }
     
     func spawnStartingObstacles() {
-        for _ in 1...8 {
+        for _ in 1...30 {
             spawnObstacle()
         }
     }
@@ -117,11 +117,14 @@ class GameViewController: UIViewController {
     func spawnObstacle() {
         let xPosition = 0.8 * Float(Int.random(in: -1...1))
         let zPosition = Float(-12 * (obstacleCounter + 2))
-        let oneInThree = Int.random(in: 1...3)
+        let oneInThree = Int.random(in: 1...4)
         if oneInThree == 1 {
             spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
         }
         else if oneInThree == 2 {
+            spawnMovingMonster(at: SCNVector3(x: 0.8, y: 0.8, z: zPosition))
+        }
+        else if oneInThree == 3 {
             spawnBridge(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
         }
         else {
@@ -138,6 +141,39 @@ class GameViewController: UIViewController {
         monsterNode.position = position
         
         sceneView.scene?.rootNode.addChildNode(monsterNode)
+    }
+    
+    func spawnMovingMonster(at position: SCNVector3) {
+        let movingMonsterNode = Models.movingMonster.clone()
+        
+        movingMonsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
+        movingMonsterNode.position = position
+
+        let rotateRight = SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: 45), z: 0, duration: 2.0)
+        rotateRight.timingMode = .easeInEaseOut
+        let rotateLeft = SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: -45), z: 0, duration: 2.0)
+        rotateLeft.timingMode = .easeInEaseOut
+        
+        let rotateSequence = SCNAction.sequence([rotateRight, rotateLeft])
+        movingMonsterNode.runAction(SCNAction.repeatForever(rotateSequence))
+        
+        let moveRight = SCNAction.moveBy(x: -1.6, y: 0, z: 0, duration: 2.0)
+        moveRight.timingMode = .easeInEaseOut
+        let moveLeft = SCNAction.moveBy(x: 1.6, y: 0, z: 0, duration: 2.0)
+        moveLeft.timingMode = .easeInEaseOut
+    
+        let moveSequence = SCNAction.sequence([moveRight, moveLeft])
+        movingMonsterNode.runAction(SCNAction.repeatForever(moveSequence))
+        
+        let moveUp = SCNAction.move(by: SCNVector3(x: 0, y: 0.3, z: 0), duration: 0.75)
+        moveUp.timingMode = .easeInEaseOut
+        let moveDown = SCNAction.move(by: SCNVector3(x: 0, y: -0.3, z: 0), duration: 0.75)
+        moveDown.timingMode = .easeInEaseOut
+        
+        let upAndDownSequence = SCNAction.sequence([moveUp, moveDown])
+        movingMonsterNode.runAction(SCNAction.repeatForever(upAndDownSequence))
+        
+        sceneView.scene?.rootNode.addChildNode(movingMonsterNode)
     }
     
     func spawnLog(at position: SCNVector3) {
@@ -280,12 +316,26 @@ extension GameViewController: SCNPhysicsContactDelegate {
         switch mask {
         case PhysicsCategories.player | PhysicsCategories.monster:
             endGame(withAnimation: "death1")
+        case PhysicsCategories.player | PhysicsCategories.movingMonster:
+            if !playerNode.animationKeys.contains("slide") {
+                let movingMonster = contact.nodeA.name == "movingMonster" ? contact.nodeA : contact.nodeB
+                movingMonster.physicsBody?.categoryBitMask = 0
+                endGame(withAnimation: "death3")
+            }
         case PhysicsCategories.sword | PhysicsCategories.monster:
             let monster = contact.nodeA.name == "Monster" ? contact.nodeA : contact.nodeB
             if playerNode.animationKeys.contains("attack") {
                 monster.physicsBody?.categoryBitMask = 0
                 if let monster = monster.parent {
                     runAnimation(named: "death" + String(Int.random(in: 1...3)), on: monster)
+                }
+            }
+        case PhysicsCategories.sword | PhysicsCategories.movingMonster:
+            let movingMonster = contact.nodeA.name == "movingMonster" ? contact.nodeA : contact.nodeB
+            if playerNode.animationKeys.contains("attack") {
+                movingMonster.physicsBody?.categoryBitMask = 0
+                if let movingMonster = movingMonster.parent {
+                    runAnimation(named: "death4", on: movingMonster)
                 }
             }
         case PhysicsCategories.player | PhysicsCategories.log:

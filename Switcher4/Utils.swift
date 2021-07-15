@@ -23,6 +23,7 @@ struct PhysicsCategories {
     static let log = 8
     static let bridge = 16
     static let coin = 32
+    static let movingMonster = 64
 }
 
 struct Models {
@@ -40,6 +41,9 @@ struct Models {
     
     private static let coinScene = SCNScene(named: "art.scnassets/coin/coin.scn")!
     static let coin = SCNNode()
+    
+    private static let movingMonsterScene = SCNScene(named: "art.scnassets/movingMonster/movingMonster.scn")!
+    static let movingMonster = SCNNode()
     
     static var animations = [String: CAAnimation]()
     
@@ -59,6 +63,9 @@ struct Models {
         for childNode in coinScene.rootNode.childNodes {
             coin.addChildNode(childNode)
         }
+        for childNode in movingMonsterScene.rootNode.childNodes {
+            movingMonster.addChildNode(childNode)
+        }
     }
     
     static func loadAnimations() {
@@ -72,6 +79,7 @@ struct Models {
         loadAnimation(from: "monster", named: "death1", fadeInDuration: 0.1, fadeOutDuration: 0.1)
         loadAnimation(from: "monster", named: "death2", fadeInDuration: 0.1, fadeOutDuration: 0.1)
         loadAnimation(from: "monster", named: "death3", fadeInDuration: 0.1, fadeOutDuration: 0.1)
+        loadAnimation(from: "movingMonster", named: "death4", fadeInDuration: 0.1, fadeOutDuration: 0.1, speed: 2.0)
     }
     
     static func loadAnimation(from folder: String, named name: String, fadeInDuration: CGFloat, fadeOutDuration: CGFloat, speed: Float = 1.0) {
