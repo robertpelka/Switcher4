@@ -21,6 +21,9 @@ class GameViewController: UIViewController {
     var obstacleCounter = 0
     var score = 0
     
+    var deletedSceneries = 0
+    var sceneriesCounter = 0
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         initializeGame()
@@ -35,6 +38,7 @@ class GameViewController: UIViewController {
         setupFloor()
         setupPlayer()
         setupGestures()
+        setupScenery(numberOfScenes: 3)
         spawnStartingObstacles()
     }
     
@@ -63,7 +67,7 @@ class GameViewController: UIViewController {
         let ambientLightNode = SCNNode()
         ambientLightNode.light = SCNLight()
         ambientLightNode.light?.type = .ambient
-        ambientLightNode.light?.intensity = 100
+        ambientLightNode.light?.intensity = 250
         lightNode.addChildNode(ambientLightNode)
         
         let directionalLightNode = SCNNode()
@@ -106,6 +110,21 @@ class GameViewController: UIViewController {
         playerNode.runAction(runningAction)
         
         sceneView.scene?.rootNode.addChildNode(playerNode)
+    }
+    
+    func setupScenery(numberOfScenes: Int = 1) {
+        for _ in (1...numberOfScenes) {
+            sceneriesCounter += 1
+            let leftScenery = Models.scenery.clone()
+            leftScenery.position = SCNVector3(x: -4.5, y: 0, z: Float(-40 * sceneriesCounter))
+            leftScenery.eulerAngles.y = convertToRadians(degrees: 90)
+            sceneView.scene?.rootNode.addChildNode(leftScenery)
+            
+            let rightScenery = Models.scenery.clone()
+            rightScenery.position = SCNVector3(x: 4.5, y: 0, z: Float(-40 * sceneriesCounter))
+            rightScenery.eulerAngles.y = convertToRadians(degrees: 270)
+            sceneView.scene?.rootNode.addChildNode(rightScenery)
+        }
     }
     
     func spawnStartingObstacles() {
@@ -212,10 +231,16 @@ class GameViewController: UIViewController {
         guard let scene = sceneView.scene else { return }
         for childNode in scene.rootNode.childNodes {
             if !sceneView.isNode(childNode, insideFrustumOf: cameraNode) && childNode.worldPosition.z > playerNode.worldPosition.z {
-                if !(childNode.childNodes.first?.name == "Coin") {
+                childNode.removeFromParentNode()
+                if !(childNode.childNodes.first?.name == "Coin") && !(childNode.childNodes.first?.name == "Scenery") {
                     spawnObstacle()
                 }
-                childNode.removeFromParentNode()
+                if childNode.childNodes.first?.name == "Scenery" {
+                    deletedSceneries += 1
+                    if deletedSceneries % 2 == 0 {
+                        setupScenery()
+                    }
+                }
             }
         }
     }

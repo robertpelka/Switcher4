@@ -45,6 +45,9 @@ struct Models {
     private static let movingMonsterScene = SCNScene(named: "art.scnassets/movingMonster/movingMonster.scn")!
     static let movingMonster = SCNNode()
     
+    private static let sceneryScene = SCNScene(named: "art.scnassets/scenery/scenery.scn")!
+    static let scenery = SCNNode()
+    
     static var animations = [String: CAAnimation]()
     
     static func loadModels() {
@@ -65,6 +68,9 @@ struct Models {
         }
         for childNode in movingMonsterScene.rootNode.childNodes {
             movingMonster.addChildNode(childNode)
+        }
+        for sceneryNode in sceneryScene.rootNode.childNodes {
+            scenery.addChildNode(sceneryNode)
         }
     }
     
