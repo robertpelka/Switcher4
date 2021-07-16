@@ -24,6 +24,8 @@ class GameViewController: UIViewController {
     var deletedSceneries = 0
     var sceneriesCounter = 0
     
+    var gameHUD: HUD!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         initializeGame()
@@ -36,8 +38,6 @@ class GameViewController: UIViewController {
         setupCamera()
         setupLight()
         setupFloor()
-        setupPlayer()
-        setupGestures()
         setupScenery(numberOfScenes: 3)
         spawnStartingObstacles()
     }
@@ -51,9 +51,22 @@ class GameViewController: UIViewController {
         scene.physicsWorld.contactDelegate = self
         
         sceneView.backgroundColor = UIColor(red: 255/255, green: 210/255, blue: 138/255, alpha: 1)
-        sceneView.showsStatistics = true
+        //sceneView.showsStatistics = true
+        
+        gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: true, isGameEnded: false)
+        sceneView.overlaySKScene = gameHUD
+        sceneView.overlaySKScene?.isUserInteractionEnabled = false
+        
         //sceneView.debugOptions = .showPhysicsShapes
         //sceneView.allowsCameraControl = true
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        setupPlayer()
+        setupGestures()
+        score = 0
+        gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: false, isGameEnded: false)
+        sceneView.overlaySKScene = gameHUD
     }
     
     func setupCamera() {
@@ -104,6 +117,7 @@ class GameViewController: UIViewController {
     func setupPlayer() {
         playerNode.addChildNode(Models.player.clone())
         
+        playerNode.position = SCNVector3(x: 0, y: 0, z: 0)
         playerNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         playerNode.eulerAngles = SCNVector3(x: 0, y: convertToRadians(degrees: 180), z: 0)
         let runningAction = SCNAction.repeatForever(SCNAction.moveBy(x: 0, y: 0, z: -5.5, duration: 1.0))
@@ -135,8 +149,9 @@ class GameViewController: UIViewController {
     
     func spawnObstacle() {
         let xPosition = 0.8 * Float(Int.random(in: -1...1))
-        let zPosition = Float(-12 * (obstacleCounter + 2))
+        let zPosition = Float(-12 * (obstacleCounter + 1))
         let oneInThree = Int.random(in: 1...4)
+        
         if oneInThree == 1 {
             spawnMonster(at: SCNVector3(x: xPosition, y: 0, z: zPosition))
         }
@@ -377,6 +392,10 @@ extension GameViewController: SCNPhysicsContactDelegate {
             let coin = contact.nodeA.name == "Coin" ? contact.nodeA : contact.nodeB
             coin.removeFromParentNode()
             score += 1
+            if score > UserDefaults.standard.integer(forKey: "bestScore") {
+                UserDefaults.standard.setValue(score, forKey: "bestScore")
+            }
+            gameHUD.gameScore.text = String(score)
         default:
             break
         }
@@ -390,9 +409,15 @@ extension GameViewController: SCNPhysicsContactDelegate {
         }
         
         let wait = SCNAction()
-        wait.duration = 1.6
+        wait.duration = 1.5
         playerNode.runAction(wait) {
-            self.playerNode.removeFromParentNode()
+            DispatchQueue.main.async {
+                self.gameHUD = HUD(withSize: self.sceneView.bounds.size, isMenu: true, isGameEnded: true)
+                self.gameHUD.gameScore.text = "Last score: \(self.score)"
+                self.sceneView.overlaySKScene = self.gameHUD
+                self.sceneView.overlaySKScene?.isUserInteractionEnabled = false
+            }
+            self.startNewGame()
         }
         
         DispatchQueue.main.async {
@@ -402,6 +427,24 @@ extension GameViewController: SCNPhysicsContactDelegate {
                 }
             }
         }
+    }
+    
+    func startNewGame() {
+        playerNode.removeAllAnimations()
+        playerNode.childNodes.first?.removeFromParentNode()
+        for child in self.scene.rootNode.childNodes {
+            child.removeFromParentNode()
+        }
+        self.obstacleCounter = 0
+        self.deletedSceneries = 0
+        self.sceneriesCounter = 0
+
+        setupCamera()
+        scene.rootNode.addChildNode(lightNode)
+        setupFloor()
+        setupScenery(numberOfScenes: 3)
+        spawnStartingObstacles()
+        playerNode.position = SCNVector3(x: 0, y: 0, z: 0)
     }
     
 }
