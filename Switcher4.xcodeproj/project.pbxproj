@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		482056F126A1E13A004D3719 /* HUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 482056F026A1E13A004D3719 /* HUD.swift */; };
 		486A851226A1FF3000BE5BC1 /* CormorantInfant-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 486A851126A1FF3000BE5BC1 /* CormorantInfant-Light.ttf */; };
+		48A24BF926A3298D00D2A94B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 48A24BF826A3298D00D2A94B /* LaunchScreen.storyboard */; };
 		48B4B3BA269AFF0E00290A2C /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B4B3B9269AFF0E00290A2C /* AppDelegate.swift */; };
 		48B4B3BC269AFF0E00290A2C /* art.scnassets in Resources */ = {isa = PBXBuildFile; fileRef = 48B4B3BB269AFF0E00290A2C /* art.scnassets */; };
 		48B4B3BE269AFF0E00290A2C /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48B4B3BD269AFF0E00290A2C /* GameViewController.swift */; };
@@ -20,6 +21,7 @@
 /* Begin PBXFileReference section */
 		482056F026A1E13A004D3719 /* HUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUD.swift; sourceTree = "<group>"; };
 		486A851126A1FF3000BE5BC1 /* CormorantInfant-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "CormorantInfant-Light.ttf"; sourceTree = "<group>"; };
+		48A24BF826A3298D00D2A94B /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		48B4B3B6269AFF0E00290A2C /* Switcher4.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Switcher4.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		48B4B3B9269AFF0E00290A2C /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		48B4B3BB269AFF0E00290A2C /* art.scnassets */ = {isa = PBXFileReference; lastKnownFileType = wrapper.scnassets; path = art.scnassets; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				48B4B3CD269B02CA00290A2C /* Utils.swift */,
 				482056F026A1E13A004D3719 /* HUD.swift */,
 				48B4B3BF269AFF0E00290A2C /* Main.storyboard */,
+				48A24BF826A3298D00D2A94B /* LaunchScreen.storyboard */,
 				48B4B3C2269AFF1200290A2C /* Assets.xcassets */,
 				48B4B3C4269AFF1200290A2C /* Info.plist */,
 				486A851026A1FF0C00BE5BC1 /* Fonts */,
@@ -141,6 +144,7 @@
 				48B4B3BC269AFF0E00290A2C /* art.scnassets in Resources */,
 				48B4B3C3269AFF1200290A2C /* Assets.xcassets in Resources */,
 				48B4B3C1269AFF0E00290A2C /* Main.storyboard in Resources */,
+				48A24BF926A3298D00D2A94B /* LaunchScreen.storyboard in Resources */,
 				486A851226A1FF3000BE5BC1 /* CormorantInfant-Light.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

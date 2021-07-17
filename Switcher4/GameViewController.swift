@@ -25,6 +25,14 @@ class GameViewController: UIViewController {
     var sceneriesCounter = 0
     
     var gameHUD: HUD!
+    let splashScreenVC = UIStoryboard.init(name: "LaunchScreen", bundle: nil).instantiateViewController(identifier: "SplashScreen")
+    var isSceneRendered = false
+    
+    override func viewDidAppear(_ animated: Bool) {
+        splashScreenVC.modalPresentationCapturesStatusBarAppearance = true
+        splashScreenVC.modalPresentationStyle = .overFullScreen
+        self.present(splashScreenVC, animated: false, completion: nil)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -32,9 +40,9 @@ class GameViewController: UIViewController {
     }
     
     func initializeGame() {
+        setupScene()
         Models.loadModels()
         Models.loadAnimations()
-        setupScene()
         setupCamera()
         setupLight()
         setupFloor()
@@ -52,21 +60,23 @@ class GameViewController: UIViewController {
         
         sceneView.backgroundColor = UIColor(red: 255/255, green: 210/255, blue: 138/255, alpha: 1)
         //sceneView.showsStatistics = true
+        //sceneView.debugOptions = .showPhysicsShapes
+        //sceneView.allowsCameraControl = true
         
         gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: true, isGameEnded: false)
         sceneView.overlaySKScene = gameHUD
         sceneView.overlaySKScene?.isUserInteractionEnabled = false
         
-        //sceneView.debugOptions = .showPhysicsShapes
-        //sceneView.allowsCameraControl = true
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        setupPlayer()
-        setupGestures()
-        score = 0
-        gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: false, isGameEnded: false)
-        sceneView.overlaySKScene = gameHUD
+        if isSceneRendered {
+            setupPlayer()
+            setupGestures()
+            score = 0
+            gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: false, isGameEnded: false)
+            sceneView.overlaySKScene = gameHUD
+        }
     }
     
     func setupCamera() {
@@ -142,7 +152,7 @@ class GameViewController: UIViewController {
     }
     
     func spawnStartingObstacles() {
-        for _ in 1...30 {
+        for _ in 1...5 {
             spawnObstacle()
         }
     }
@@ -259,6 +269,10 @@ class GameViewController: UIViewController {
             }
         }
     }
+    
+    override var prefersStatusBarHidden: Bool {
+        return true
+    }
 
 }
 
@@ -335,6 +349,15 @@ extension GameViewController: SCNSceneRendererDelegate {
     func renderer(_ renderer: SCNSceneRenderer, didApplyAnimationsAtTime time: TimeInterval) {
         updateCameraPosition()
         removePassedObstacles()
+    }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didRenderScene scene: SCNScene, atTime time: TimeInterval) {
+        if !isSceneRendered {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
+                self.splashScreenVC.dismiss(animated: false, completion: nil)
+            })
+            isSceneRendered = true
+        }
     }
     
     func updateCameraPosition() {
