@@ -18,6 +18,9 @@ class GameViewController: UIViewController {
     let lightNode = SCNNode()
     let playerNode = SCNNode()
     
+    var obstacles = [SCNNode]()
+    var sceneries = [SCNNode]()
+    
     var obstacleCounter = 0
     var score = 0
     
@@ -27,6 +30,8 @@ class GameViewController: UIViewController {
     var gameHUD: HUD!
     let splashScreenVC = UIStoryboard.init(name: "LaunchScreen", bundle: nil).instantiateViewController(identifier: "SplashScreen")
     var isSceneRendered = false
+    
+    let musicNode = SCNNode()
     
     override func viewDidAppear(_ animated: Bool) {
         splashScreenVC.modalPresentationCapturesStatusBarAppearance = true
@@ -40,9 +45,10 @@ class GameViewController: UIViewController {
     }
     
     func initializeGame() {
-        setupScene()
         Models.loadModels()
         Models.loadAnimations()
+        Sounds.loadSounds()
+        setupScene()
         setupCamera()
         setupLight()
         setupFloor()
@@ -66,7 +72,8 @@ class GameViewController: UIViewController {
         gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: true, isGameEnded: false)
         sceneView.overlaySKScene = gameHUD
         sceneView.overlaySKScene?.isUserInteractionEnabled = false
-        
+    
+        scene.rootNode.addChildNode(self.musicNode)
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -76,6 +83,10 @@ class GameViewController: UIViewController {
             score = 0
             gameHUD = HUD(withSize: sceneView.bounds.size, isMenu: false, isGameEnded: false)
             sceneView.overlaySKScene = gameHUD
+            
+            musicNode.removeAllAudioPlayers()
+            musicNode.runAction(SCNAction.playAudio(Sounds.music, waitForCompletion: false))
+            playerNode.runAction(SCNAction.playAudio(Sounds.breathing, waitForCompletion: false))
         }
     }
     
@@ -142,11 +153,13 @@ class GameViewController: UIViewController {
             let leftScenery = Models.scenery.clone()
             leftScenery.position = SCNVector3(x: -4.5, y: 0, z: Float(-40 * sceneriesCounter))
             leftScenery.eulerAngles.y = convertToRadians(degrees: 90)
+            sceneries.append(leftScenery)
             sceneView.scene?.rootNode.addChildNode(leftScenery)
             
             let rightScenery = Models.scenery.clone()
             rightScenery.position = SCNVector3(x: 4.5, y: 0, z: Float(-40 * sceneriesCounter))
             rightScenery.eulerAngles.y = convertToRadians(degrees: 270)
+            sceneries.append(rightScenery)
             sceneView.scene?.rootNode.addChildNode(rightScenery)
         }
     }
@@ -184,6 +197,7 @@ class GameViewController: UIViewController {
         monsterNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         monsterNode.position = position
         
+        obstacles.append(monsterNode)
         sceneView.scene?.rootNode.addChildNode(monsterNode)
     }
     
@@ -217,6 +231,7 @@ class GameViewController: UIViewController {
         let upAndDownSequence = SCNAction.sequence([moveUp, moveDown])
         movingMonsterNode.runAction(SCNAction.repeatForever(upAndDownSequence))
         
+        obstacles.append(movingMonsterNode)
         sceneView.scene?.rootNode.addChildNode(movingMonsterNode)
     }
     
@@ -227,6 +242,7 @@ class GameViewController: UIViewController {
         logNode.scale = SCNVector3(x: 0.01, y: 0.01, z: 0.01)
         logNode.position = position
         
+        obstacles.append(logNode)
         sceneView.scene?.rootNode.addChildNode(logNode)
     }
     
@@ -236,6 +252,7 @@ class GameViewController: UIViewController {
         bridgeNode.scale = SCNVector3(x: 0.065, y: 0.035, z: 0.09)
         bridgeNode.position = position
         
+        obstacles.append(bridgeNode)
         sceneView.scene?.rootNode.addChildNode(bridgeNode)
     }
     
@@ -248,6 +265,7 @@ class GameViewController: UIViewController {
             coinNode.position = SCNVector3(x: position.x, y: position.y, z: position.z + Float(2 * i))
             coinNode.runAction(SCNAction.repeatForever(SCNAction.rotateBy(x: 0, y: convertToRadians(degrees: 180), z: 0, duration: 1.0)))
             
+            obstacles.append(coinNode)
             sceneView.scene?.rootNode.addChildNode(coinNode)
         }
     }
@@ -336,6 +354,17 @@ extension GameViewController {
         if !node.animationKeys.contains(where: animationNames.contains) {
             if let animation = Models.animations[name] {
                 node.addAnimation(animation, forKey: name)
+                
+                switch name {
+                case "jump":
+                    playerNode.runAction(SCNAction.playAudio(Sounds.jump, waitForCompletion: false))
+                case "slide":
+                    playerNode.runAction(SCNAction.playAudio(Sounds.slide, waitForCompletion: false))
+                case "attack":
+                    playerNode.runAction(SCNAction.playAudio(Sounds.sword, waitForCompletion: false))
+                default:
+                    break
+                }
             }
         }
     }
@@ -355,6 +384,8 @@ extension GameViewController: SCNSceneRendererDelegate {
         if !isSceneRendered {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1, execute: {
                 self.splashScreenVC.dismiss(animated: false, completion: nil)
+                self.musicNode.runAction(SCNAction.playAudio(Sounds.darkClouds, waitForCompletion: false))
+                self.musicNode.runAction(SCNAction.playAudio(Sounds.ravens, waitForCompletion: false))
             })
             isSceneRendered = true
         }
@@ -379,11 +410,13 @@ extension GameViewController: SCNPhysicsContactDelegate {
         switch mask {
         case PhysicsCategories.player | PhysicsCategories.monster:
             endGame(withAnimation: "death1")
+            playerNode.runAction(SCNAction.playAudio(Sounds.death, waitForCompletion: false))
         case PhysicsCategories.player | PhysicsCategories.movingMonster:
             if !playerNode.animationKeys.contains("slide") {
                 let movingMonster = contact.nodeA.name == "movingMonster" ? contact.nodeA : contact.nodeB
                 movingMonster.physicsBody?.categoryBitMask = 0
                 endGame(withAnimation: "death3")
+                playerNode.runAction(SCNAction.playAudio(Sounds.death, waitForCompletion: false))
             }
         case PhysicsCategories.sword | PhysicsCategories.monster:
             let monster = contact.nodeA.name == "Monster" ? contact.nodeA : contact.nodeB
@@ -392,6 +425,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
                 if let monster = monster.parent {
                     runAnimation(named: "death" + String(Int.random(in: 1...3)), on: monster)
                 }
+                playerNode.runAction(SCNAction.playAudio(Sounds.monsterHit, waitForCompletion: false))
             }
         case PhysicsCategories.sword | PhysicsCategories.movingMonster:
             let movingMonster = contact.nodeA.name == "movingMonster" ? contact.nodeA : contact.nodeB
@@ -400,16 +434,19 @@ extension GameViewController: SCNPhysicsContactDelegate {
                 if let movingMonster = movingMonster.parent {
                     runAnimation(named: "death4", on: movingMonster)
                 }
+                playerNode.runAction(SCNAction.playAudio(Sounds.movingMonsterHit, waitForCompletion: false))
             }
         case PhysicsCategories.player | PhysicsCategories.log:
             if !playerNode.animationKeys.contains("jump") {
                 endGame(withAnimation: "trip")
+                playerNode.runAction(SCNAction.playAudio(Sounds.knocked, waitForCompletion: false))
             }
         case PhysicsCategories.player | PhysicsCategories.bridge:
             let bridge = contact.nodeA.name == "Bridge" ? contact.nodeA : contact.nodeB
             guard let bridgeParent = bridge.parent else { return }
             if !playerNode.animationKeys.contains("slide") || abs(playerNode.position.x - bridgeParent.position.x) > 0.1 {
                 endGame(withAnimation: "death2")
+                playerNode.runAction(SCNAction.playAudio(Sounds.knocked, waitForCompletion: false))
             }
         case PhysicsCategories.player | PhysicsCategories.coin:
             let coin = contact.nodeA.name == "Coin" ? contact.nodeA : contact.nodeB
@@ -419,6 +456,11 @@ extension GameViewController: SCNPhysicsContactDelegate {
                 UserDefaults.standard.setValue(score, forKey: "bestScore")
             }
             gameHUD.gameScore.text = String(score)
+            
+            playerNode.runAction(SCNAction.playAudio(Sounds.coin, waitForCompletion: false))
+            if Int.random(in: 1...15) == 1, let randomWord = SCNAudioSource(fileNamed: "art.scnassets/sounds/maria/random/random\(Int.random(in: 1...9)).wav") {
+                self.playerNode.runAction(SCNAction.playAudio(randomWord, waitForCompletion: false))
+            }
         default:
             break
         }
@@ -426,6 +468,7 @@ extension GameViewController: SCNPhysicsContactDelegate {
     
     func endGame(withAnimation name: String) {
         playerNode.removeAllActions()
+        playerNode.removeAllAudioPlayers()
 
         if let animation = Models.animations[name] {
             playerNode.addAnimation(animation, forKey: name)
@@ -441,6 +484,8 @@ extension GameViewController: SCNPhysicsContactDelegate {
                 self.sceneView.overlaySKScene?.isUserInteractionEnabled = false
             }
             self.startNewGame()
+            self.musicNode.removeAllAudioPlayers()
+            self.playerNode.runAction(SCNAction.playAudio(Sounds.lostMelody, waitForCompletion: false))
         }
         
         DispatchQueue.main.async {
@@ -455,16 +500,18 @@ extension GameViewController: SCNPhysicsContactDelegate {
     func startNewGame() {
         playerNode.removeAllAnimations()
         playerNode.childNodes.first?.removeFromParentNode()
-        for child in self.scene.rootNode.childNodes {
-            child.removeFromParentNode()
+        
+        for scenery in sceneries {
+            scenery.removeFromParentNode()
         }
+        for obstacle in obstacles {
+            obstacle.removeFromParentNode()
+        }
+        
         self.obstacleCounter = 0
         self.deletedSceneries = 0
         self.sceneriesCounter = 0
 
-        setupCamera()
-        scene.rootNode.addChildNode(lightNode)
-        setupFloor()
         setupScenery(numberOfScenes: 3)
         spawnStartingObstacles()
         playerNode.position = SCNVector3(x: 0, y: 0, z: 0)

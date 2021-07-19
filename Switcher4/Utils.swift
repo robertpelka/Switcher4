@@ -102,3 +102,54 @@ struct Models {
         }
     }
 }
+
+struct Sounds {
+    static let darkClouds = SCNAudioSource(fileNamed: "art.scnassets/sounds/menu/darkClouds.flac")!
+    static let ravens = SCNAudioSource(fileNamed: "art.scnassets/sounds/menu/ravens.aiff")!
+    static let music = SCNAudioSource(fileNamed: "art.scnassets/sounds/game/music.mp3")!
+    static let death = SCNAudioSource(fileNamed: "art.scnassets/sounds/lost/death.wav")!
+    static let monsterHit = SCNAudioSource(fileNamed: "art.scnassets/sounds/monsters/hit.wav")!
+    static let movingMonsterHit = SCNAudioSource(fileNamed: "art.scnassets/sounds/monsters/movingMonsterHit.wav")!
+    static let knocked = SCNAudioSource(fileNamed: "art.scnassets/sounds/lost/knocked.wav")!
+    static let coin = SCNAudioSource(fileNamed: "art.scnassets/sounds/game/coin.wav")!
+    static let lostMelody = SCNAudioSource(fileNamed: "art.scnassets/sounds/lost/lostMelody.wav")!
+    static let breathing = SCNAudioSource(fileNamed: "art.scnassets/sounds/maria/breathing.wav")!
+    static let jump = SCNAudioSource(fileNamed: "art.scnassets/sounds/maria/jump.wav")!
+    static let slide = SCNAudioSource(fileNamed: "art.scnassets/sounds/maria/slide.wav")!
+    static let sword = SCNAudioSource(fileNamed: "art.scnassets/sounds/maria/sword.wav")!
+    
+    static func loadSounds() {
+        music.loops = true
+        music.volume = 0.6
+        
+        death.shouldStream = false
+        death.load()
+        
+        monsterHit.shouldStream = false
+        monsterHit.volume = 0.5
+        monsterHit.load()
+        
+        movingMonsterHit.shouldStream = false
+        movingMonsterHit.load()
+        
+        knocked.shouldStream = false
+        knocked.load()
+        
+        coin.shouldStream = false
+        coin.load()
+        
+        lostMelody.shouldStream = false
+        lostMelody.load()
+        
+        breathing.shouldStream = false
+        breathing.loops = true
+        breathing.volume = 0.8
+        breathing.load()
+        
+        slide.shouldStream = false
+        slide.load()
+        
+        sword.shouldStream = false
+        sword.load()
+    }
+}
