@@ -1,5 +1,11 @@
 # Switcher4
 
+<p align="center">
+  <a href="https://user-images.githubusercontent.com/71329150/126673819-1aa867fe-65af-491d-8c54-09ba0185f05b.mp4">
+    <img src="https://user-images.githubusercontent.com/71329150/126676360-989fdea4-c83e-4f6d-a8a5-cc6cb9466af0.gif" alt="screenshot">
+  </a>
+</p>
+
 ###### EN
 Switcher4 is my third iOS game, but first 3D game created using the SceneKit framework. The character is controlled by swiping your finger up, down or sideways, which allows you to jump, slide and turn left or right, by touching the screen you can attack. The object of the game is to collect coins, avoid obstacles, and kill or avoid monsters.
 
